@@ -11,30 +11,35 @@ import dotenv from "dotenv"; // Importa o pacote dotenv para carregar variáveis
 const app = express(); // Inicializa o servidor Express
 const port = 3000; // Define a porta onde o servidor irá escutar
 dotenv.config(); // Carrega as variáveis de ambiente do arquivo .env
-const { Pool } = pkg; // Obtém o construtor Pool do pacote pg para gerenciar conexões com o banco de dados PostgreSQL
+
+const { Pool } = pkg; // Obtém o construtor Pool do pacote pg para gerenciar conexões
+let pool = null; // Variável para armazenar o pool de conexões com o banco de dados
+
+// ######
+// Função para obter uma conexão com o banco de dados
+// ######
+function conectarBD() {
+  if (!pool) {
+    pool = new Pool({
+      connectionString: process.env.URL_BD, // Usa a string do .env
+    });
+  }
+  return pool;
+}
 
 // ######
 // Local onde as rotas (endpoints) serão definidas
 // ######
 
+// Rota raiz GET /
 app.get("/", async (req, res) => {
-  // Rota raiz do servidor
-  // Rota GET /
-  // Esta rota é chamada quando o usuário acessa a raiz do servidor
-  // Ela retorna uma mensagem de boas-vindas e o status da conexão com o banco de dados
-  // Cria a rota da raiz do projeto
+  console.log("Rota GET / solicitada");
 
-  console.log("Rota GET / solicitada"); // Log no terminal para indicar que a rota foi acessada
-
-  const db = new Pool({
-    // Cria uma nova instância do Pool para gerenciar conexões com o banco de dados
-    connectionString: process.env.URL_BD, // Usa a variável de ambiente do arquivo .env DATABASE_URL para a string de conexão
-  });
-
+  const db = conectarBD(); // Usa a função para obter a conexão
   let dbStatus = "ok";
 
   try {
-    await db.query("SELECT 1");
+    await db.query("SELECT 1"); // Testa conexão
   } catch (e) {
     dbStatus = e.message;
   }
@@ -46,23 +51,18 @@ app.get("/", async (req, res) => {
   });
 });
 
-// ######
-// Nova rota GET /questoes solicitada pelo enunciado
-// ######
+// Rota GET /questoes
 app.get("/questoes", async (req, res) => {
-  console.log("Rota GET /questoes solicitada"); // Log no terminal para indicar que a rota foi acessada
+  console.log("Rota GET /questoes solicitada");
 
-  const db = new Pool({
-    // Cria uma nova instância do Pool para gerenciar conexões com o banco de dados
-    connectionString: process.env.URL_BD, // Usa a variável de ambiente do arquivo .env DATABASE_URL para a string de conexão
-  });
+  const db = conectarBD(); // Usa a função para obter a conexão
 
   try {
-    const resultado = await db.query("SELECT * FROM questoes"); // Executa uma consulta SQL para selecionar todas as questões
-    const dados = resultado.rows; // Obtém as linhas retornadas pela consulta
-    res.json(dados); // Retorna o resultado da consulta como JSON
+    const resultado = await db.query("SELECT * FROM questoes"); // Executa a consulta
+    const dados = resultado.rows;
+    res.json(dados);
   } catch (e) {
-    console.error("Erro ao buscar questões:", e); // Log do erro no servidor
+    console.error("Erro ao buscar questões:", e);
     res.status(500).json({
       erro: "Erro interno do servidor",
       mensagem: "Não foi possível buscar as questões",
@@ -73,8 +73,6 @@ app.get("/questoes", async (req, res) => {
 // ######
 // Local onde o servidor irá escutar as requisições
 // ######
-
 app.listen(port, () => {
-  console.log(`Serviço rodando na porta:  ${port}`);
+  console.log(`Serviço rodando na porta: ${port}`);
 });
-
