@@ -53,10 +53,9 @@ app.get("/", async (req, res) => {
   });
 });
 
-// Listar todas as questões
+// ===== ROTAS CRUD DE QUESTÕES =====
 app.get("/questoes", async (req, res) => {
   const db = conectarBD();
-
   try {
     const resultado = await db.query("SELECT * FROM questoes");
     res.json(resultado.rows);
@@ -66,67 +65,27 @@ app.get("/questoes", async (req, res) => {
   }
 });
 
-// Buscar uma questão pelo ID
 app.get("/questoes/:id", async (req, res) => {
-  console.log("Rota GET /questoes/:id solicitada");
-
+  const { id } = req.params;
+  const db = conectarBD();
   try {
-    const id = req.params.id;
-    const db = conectarBD();
     const resultado = await db.query("SELECT * FROM questoes WHERE id = $1", [id]);
-
-    if (resultado.rows.length === 0) {
-      return res.status(404).json({ mensagem: "Questão não encontrada" });
-    }
-
-    res.json(resultado.rows);
+    if (resultado.rows.length === 0) return res.status(404).json({ mensagem: "Questão não encontrada" });
+    res.json(resultado.rows[0]);
   } catch (e) {
     console.error("Erro ao buscar questão:", e);
     res.status(500).json({ erro: "Erro interno do servidor" });
   }
 });
 
-// Excluir uma questão pelo ID
-app.delete("/questoes/:id", async (req, res) => {
-  console.log("Rota DELETE /questoes/:id solicitada");
-
-  try {
-    const id = req.params.id;
-    const db = conectarBD();
-
-    const resultado = await db.query("SELECT * FROM questoes WHERE id = $1", [id]);
-    if (resultado.rows.length === 0) {
-      return res.status(404).json({ mensagem: "Questão não encontrada" });
-    }
-
-    await db.query("DELETE FROM questoes WHERE id = $1", [id]);
-    res.status(200).json({ mensagem: "Questão excluída com sucesso!!" });
-  } catch (e) {
-    console.error("Erro ao excluir questão:", e);
-    res.status(500).json({ erro: "Erro interno do servidor" });
-  }
-});
-
-// 🆕 Inserir uma nova questão
 app.post("/questoes", async (req, res) => {
-  console.log("Rota POST /questoes solicitada");
+  const { enunciado, disciplina, tema, nivel } = req.body;
+  if (!enunciado || !disciplina || !tema || !nivel)
+    return res.status(400).json({ erro: "Todos os campos são obrigatórios." });
 
+  const db = conectarBD();
   try {
-    const data = req.body;
-
-    // Validação
-    if (!data.enunciado || !data.disciplina || !data.tema || !data.nivel) {
-      return res.status(400).json({
-        erro: "Dados inválidos",
-        mensagem: "Todos os campos (enunciado, disciplina, tema, nivel) são obrigatórios.",
-      });
-    }
-
-    const db = conectarBD();
-    const consulta =
-      "INSERT INTO questoes (enunciado, disciplina, tema, nivel) VALUES ($1, $2, $3, $4)";
-    await db.query(consulta, [data.enunciado, data.disciplina, data.tema, data.nivel]);
-
+    await db.query("INSERT INTO questoes (enunciado, disciplina, tema, nivel) VALUES ($1, $2, $3, $4)", [enunciado, disciplina, tema, nivel]);
     res.status(201).json({ mensagem: "Questão criada com sucesso!" });
   } catch (e) {
     console.error("Erro ao inserir questão:", e);
@@ -134,39 +93,113 @@ app.post("/questoes", async (req, res) => {
   }
 });
 
-// 🆕 Atualizar uma questão pelo ID
 app.put("/questoes/:id", async (req, res) => {
-  console.log("Rota PUT /questoes/:id solicitada");
-
+  const { id } = req.params;
+  const db = conectarBD();
   try {
-    const id = req.params.id; // Pega o ID da questão da URL
-    const db = conectarBD(); // Conecta ao banco de dados
+    const resultado = await db.query("SELECT * FROM questoes WHERE id = $1", [id]);
+    if (resultado.rows.length === 0) return res.status(404).json({ mensagem: "Questão não encontrada" });
 
-    // Verifica se a questão existe
-    let resultado = await db.query("SELECT * FROM questoes WHERE id = $1", [id]);
-    let questao = resultado.rows;
+    const questao = resultado.rows[0];
+    const { enunciado, disciplina, tema, nivel } = req.body;
 
-    if (questao.length === 0) {
-      return res.status(404).json({ message: "Questão não encontrada" });
-    }
-
-    const data = req.body; // Pega os dados enviados no corpo da requisição
-
-    // Mantém os valores atuais caso algum campo não seja informado
-    data.enunciado = data.enunciado || questao[0].enunciado;
-    data.disciplina = data.disciplina || questao[0].disciplina;
-    data.tema = data.tema || questao[0].tema;
-    data.nivel = data.nivel || questao[0].nivel;
-
-    // Atualiza a questão no banco
     await db.query(
       "UPDATE questoes SET enunciado = $1, disciplina = $2, tema = $3, nivel = $4 WHERE id = $5",
-      [data.enunciado, data.disciplina, data.tema, data.nivel, id]
+      [enunciado || questao.enunciado, disciplina || questao.disciplina, tema || questao.tema, nivel || questao.nivel, id]
     );
-
-    res.status(200).json({ message: "Questão atualizada com sucesso!" });
+    res.json({ mensagem: "Questão atualizada com sucesso!" });
   } catch (e) {
     console.error("Erro ao atualizar questão:", e);
+    res.status(500).json({ erro: "Erro interno do servidor" });
+  }
+});
+
+app.delete("/questoes/:id", async (req, res) => {
+  const { id } = req.params;
+  const db = conectarBD();
+  try {
+    const resultado = await db.query("SELECT * FROM questoes WHERE id = $1", [id]);
+    if (resultado.rows.length === 0) return res.status(404).json({ mensagem: "Questão não encontrada" });
+
+    await db.query("DELETE FROM questoes WHERE id = $1", [id]);
+    res.json({ mensagem: "Questão excluída com sucesso!" });
+  } catch (e) {
+    console.error("Erro ao excluir questão:", e);
+    res.status(500).json({ erro: "Erro interno do servidor" });
+  }
+});
+
+// ===== ROTAS CRUD DE USUÁRIOS =====
+app.get("/usuarios", async (req, res) => {
+  const db = conectarBD();
+  try {
+    const resultado = await db.query("SELECT id, nome, email, criado_em FROM usuarios");
+    res.json(resultado.rows);
+  } catch (e) {
+    console.error("Erro ao buscar usuários:", e);
+    res.status(500).json({ erro: "Erro interno do servidor" });
+  }
+});
+
+app.get("/usuarios/:id", async (req, res) => {
+  const { id } = req.params;
+  const db = conectarBD();
+  try {
+    const resultado = await db.query("SELECT id, nome, email, criado_em FROM usuarios WHERE id = $1", [id]);
+    if (resultado.rows.length === 0) return res.status(404).json({ mensagem: "Usuário não encontrado" });
+    res.json(resultado.rows[0]);
+  } catch (e) {
+    console.error("Erro ao buscar usuário:", e);
+    res.status(500).json({ erro: "Erro interno do servidor" });
+  }
+});
+
+app.post("/usuarios", async (req, res) => {
+  const { nome, email, senha } = req.body;
+  if (!nome || !email || !senha) return res.status(400).json({ erro: "Todos os campos são obrigatórios." });
+
+  const db = conectarBD();
+  try {
+    await db.query("INSERT INTO usuarios (nome, email, senha) VALUES ($1, $2, $3)", [nome, email, senha]);
+    res.status(201).json({ mensagem: "Usuário criado com sucesso!" });
+  } catch (e) {
+    console.error("Erro ao criar usuário:", e);
+    res.status(500).json({ erro: "Erro interno do servidor" });
+  }
+});
+
+app.put("/usuarios/:id", async (req, res) => {
+  const { id } = req.params;
+  const db = conectarBD();
+  try {
+    const resultado = await db.query("SELECT * FROM usuarios WHERE id = $1", [id]);
+    if (resultado.rows.length === 0) return res.status(404).json({ mensagem: "Usuário não encontrado" });
+
+    const usuario = resultado.rows[0];
+    const { nome, email, senha } = req.body;
+
+    await db.query(
+      "UPDATE usuarios SET nome = $1, email = $2, senha = $3 WHERE id = $4",
+      [nome || usuario.nome, email || usuario.email, senha || usuario.senha, id]
+    );
+    res.json({ mensagem: "Usuário atualizado com sucesso!" });
+  } catch (e) {
+    console.error("Erro ao atualizar usuário:", e);
+    res.status(500).json({ erro: "Erro interno do servidor" });
+  }
+});
+
+app.delete("/usuarios/:id", async (req, res) => {
+  const { id } = req.params;
+  const db = conectarBD();
+  try {
+    const resultado = await db.query("SELECT * FROM usuarios WHERE id = $1", [id]);
+    if (resultado.rows.length === 0) return res.status(404).json({ mensagem: "Usuário não encontrado" });
+
+    await db.query("DELETE FROM usuarios WHERE id = $1", [id]);
+    res.json({ mensagem: "Usuário excluído com sucesso!" });
+  } catch (e) {
+    console.error("Erro ao excluir usuário:", e);
     res.status(500).json({ erro: "Erro interno do servidor" });
   }
 });
@@ -177,6 +210,7 @@ app.put("/questoes/:id", async (req, res) => {
 app.listen(port, () => {
   console.log(`✅ Serviço rodando na porta: ${port}`);
 });
+
 
 
 
