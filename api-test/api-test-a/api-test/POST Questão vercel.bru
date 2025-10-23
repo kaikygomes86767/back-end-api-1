@@ -4,18 +4,19 @@ meta {
   seq: 8
 }
 
-get {
-  url: https://back-end-api-1-g7pv.vercel.app//questoes
+post {
+  url: https://back-end-api-1-g7pv.vercel.app/usuarios
   body: json
   auth: inherit
 }
 
 body:json {
   {
-    "enunciado": "Qual é a capital da França?",
-    "disciplina": "Geografia",
-    "tema": "Capitais do mundo",
-    "nivel": 1
+    "id": "Qual é a capital da França?",
+    "nome": "Geografia",
+    "email": "Capitais do mundo",
+    "senha":"2" 
+    
   }
 }
 
