@@ -1,0 +1,24 @@
+meta {
+  name: PUT QUESTOES
+  type: http
+  seq: 5
+}
+
+put {
+  url: https://orange-waffle-4j6464x54pp9cq5qv-3000.app.github.dev/questoes/4
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "enunciado": "Qual é a capital da Bélgica?",
+    "disciplina": "Geografia",
+    "tema": "Capitais do mundo",
+    "nivel": 3
+  }
+}
+
+settings {
+  encodeUrl: true
+}
